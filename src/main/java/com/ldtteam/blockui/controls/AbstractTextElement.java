@@ -1,5 +1,6 @@
 package com.ldtteam.blockui.controls;
 
+import com.ldtteam.blockui.Color;
 import com.ldtteam.blockui.Alignment;
 import com.ldtteam.blockui.BOGuiGraphics;
 import com.ldtteam.blockui.Pane;
@@ -43,6 +44,16 @@ public abstract class AbstractTextElement extends Pane
      * The text scale.
      */
     protected double textScale = DEFAULT_TEXT_SCALE;
+
+    /**
+     * Scale actually used for drawing: {@link #textScale}, shrunk by {@link #recalcTextRendering()} when the text does
+     * not fit its box. Translations (Russian especially) are often much longer than the English the layouts were made
+     * for; without this a fixed-size button just shows the first word ("Хижина" for "Хижина строителя").
+     */
+    protected double renderScale = DEFAULT_TEXT_SCALE;
+
+    /** Smallest fraction of {@link #textScale} auto-fit may shrink to before giving up and cutting the text. */
+    protected static final double MIN_AUTO_FIT_SCALE = 0.6d;
 
     /**
      * How the text aligns in it.
@@ -191,8 +202,37 @@ public abstract class AbstractTextElement extends Pane
             return;
         }
 
-        final int maxWidth = (int) (textWidth / textScale) - (textShadow ? 1 : 0);
-        preparedText = text.stream().flatMap(textBlock -> toFormattedSequence(maxWidth, textBlock)).collect(Collectors.toList());
+        renderScale = textScale;
+        while (true)
+        {
+            final int maxWidth = (int) (textWidth / renderScale) - (textShadow ? 1 : 0);
+            preparedText = text.stream().flatMap(textBlock -> toFormattedSequence(maxWidth, textBlock)).collect(Collectors.toList());
+
+            final double smaller = renderScale * 0.92d;
+            if (!autoFitText() || fitsTextBox() || smaller < textScale * MIN_AUTO_FIT_SCALE)
+            {
+                return;
+            }
+            renderScale = smaller;
+        }
+    }
+
+    /**
+     * @return whether this element may shrink its text to fit; elements that size themselves to their text don't.
+     */
+    protected boolean autoFitText()
+    {
+        return true;
+    }
+
+    private boolean fitsTextBox()
+    {
+        if (!textWrap)
+        {
+            return preparedText.size() <= 1;
+        }
+        final int maxHeight = (int) (textHeight / renderScale) + 1;
+        return preparedText.size() <= maxHeight / (mc.font.lineHeight + textLinespace);
     }
 
     private Stream<? extends FormattedCharSequence> toFormattedSequence(final int maxWidth, MutableComponent textBlock)
@@ -220,8 +260,8 @@ public abstract class AbstractTextElement extends Pane
     {
         if (textWrap)
         {
-            // + Math.ceil(textScale) / textScale is to negate last pixel of vanilla font rendering
-            final int maxHeight = (int) (textHeight / textScale) + 1;
+            // + Math.ceil(renderScale) / renderScale is to negate last pixel of vanilla font rendering
+            final int maxHeight = (int) (textHeight / renderScale) + 1;
             final int lineHeight = this.mc.font.lineHeight + textLinespace;
 
             // TODO: fix me, surely not like this
@@ -250,14 +290,14 @@ public abstract class AbstractTextElement extends Pane
                     widthMax = Math.max(widthMax, mc.font.width(textBlock));
                 }
             }
-            renderedTextWidth = (int) (widthMax * textScale);
-            renderedTextHeight = (int) ((Math.min(heightSum, maxHeight) - 1 - textLinespace) * textScale);
+            renderedTextWidth = (int) (widthMax * renderScale);
+            renderedTextHeight = (int) ((Math.min(heightSum, maxHeight) - 1 - textLinespace) * renderScale);
         }
         else
         {
             preparedText = preparedText.subList(0, 1);
-            renderedTextWidth = (int) (mc.font.width(preparedText.get(0)) * textScale);
-            renderedTextHeight = (int) ((this.mc.font.lineHeight - 1) * textScale);
+            renderedTextWidth = (int) (mc.font.width(preparedText.get(0)) * renderScale);
+            renderedTextHeight = (int) ((this.mc.font.lineHeight - 1) * renderScale);
         }
     }
 
@@ -300,7 +340,7 @@ public abstract class AbstractTextElement extends Pane
 
         ms.pushMatrix();
         ms.translate(x + offsetX, y + offsetY);
-        ms.scale((float) textScale, (float) textScale);
+        ms.scale((float) renderScale, (float) renderScale);
 
         int lineShift = 0;
         for (FormattedCharSequence row : preparedText)
@@ -328,18 +368,18 @@ public abstract class AbstractTextElement extends Pane
 
             if (textAlignment.isRightAligned())
             {
-                xOffset = (int) ((renderedTextWidth - mc.font.width(row) * textScale) / textScale);
+                xOffset = (int) ((renderedTextWidth - mc.font.width(row) * renderScale) / renderScale);
             }
             else if (textAlignment.isHorizontalCentered())
             {
-                xOffset = (int) ((renderedTextWidth - mc.font.width(row) * textScale) / 2 / textScale);
+                xOffset = (int) ((renderedTextWidth - mc.font.width(row) * renderScale) / 2 / renderScale);
             }
             else
             {
                 xOffset = 0;
             }
 
-            target.text(mc.font, row, xOffset, lineShift, color, textShadow);
+            target.text(mc.font, row, xOffset, lineShift, Color.legacyText(color), textShadow);
             lineShift += mc.font.lineHeight + textLinespace;
         }
 

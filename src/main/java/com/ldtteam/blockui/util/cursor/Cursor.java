@@ -37,18 +37,23 @@ public class Cursor
     public static final CursorType RESIZE = CursorTypes.RESIZE_ALL;
     public static final CursorType NOT_ALLOWED = CursorTypes.NOT_ALLOWED;
 
+    /*
+     * PORT(26.1): keys are literal, not CursorType.name. createStandardCursor returns its fallback (DEFAULT, named
+     * "default") when GLFW cannot create a shape - e.g. the diagonal resize cursors on X servers without them - and
+     * keying by name then put "default" in twice, failing this class's init and with it every BlockUI window.
+     */
     private static final Map<String, CursorType> CURSOR_MAP = Map.ofEntries(
-        Map.entry(DEFAULT.name, DEFAULT),
-        Map.entry(ARROW.name, ARROW),
-        Map.entry(TEXT_CURSOR.name, TEXT_CURSOR),
-        Map.entry(CROSSHAIR.name, CROSSHAIR),
-        Map.entry(HAND.name, HAND),
-        Map.entry(HORIZONTAL_RESIZE.name, HORIZONTAL_RESIZE),
-        Map.entry(VERTICAL_RESIZE.name, VERTICAL_RESIZE),
-        Map.entry(RESIZE_NWSE.name, RESIZE_NWSE),
-        Map.entry(RESIZE_NESW.name, RESIZE_NESW),
-        Map.entry(RESIZE.name, RESIZE),
-        Map.entry(NOT_ALLOWED.name, NOT_ALLOWED)
+        Map.entry("default", DEFAULT),
+        Map.entry("arrow", ARROW),
+        Map.entry("ibeam", TEXT_CURSOR),
+        Map.entry("crosshair", CROSSHAIR),
+        Map.entry("pointing_hand", HAND),
+        Map.entry("resize_ew", HORIZONTAL_RESIZE),
+        Map.entry("resize_ns", VERTICAL_RESIZE),
+        Map.entry("resize_nwse", RESIZE_NWSE),
+        Map.entry("resize_nesw", RESIZE_NESW),
+        Map.entry("resize_all", RESIZE),
+        Map.entry("not_allowed", NOT_ALLOWED)
     );
 
     public static CursorType of(final Identifier resLoc)

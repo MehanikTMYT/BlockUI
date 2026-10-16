@@ -55,7 +55,7 @@ public class BOGuiGraphics extends GuiGraphicsExtractor
 
     public int drawString(final String text, final int x, final int y, final int color, final boolean shadow)
     {
-        super.text(minecraft.font, text, x, y, color, shadow);
+        super.text(minecraft.font, text, x, y, Color.legacyText(color), shadow);
         return x + minecraft.font.width(text); // should return end pos
     }
 

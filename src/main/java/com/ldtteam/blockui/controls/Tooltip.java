@@ -80,6 +80,13 @@ public class Tooltip extends AbstractTextElement
     }
 
     @Override
+    protected boolean autoFitText()
+    {
+        // a tooltip grows to fit its text instead
+        return false;
+    }
+
+    @Override
     protected void recalcTextRendering()
     {
         if (textScale <= 0.0d || isTextEmpty())

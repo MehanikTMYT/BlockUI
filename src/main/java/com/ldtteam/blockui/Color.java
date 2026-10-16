@@ -112,6 +112,19 @@ public final class Color
         return (a << 24) | (r << 16) | (g << 8) | b;
     }
 
+    /**
+     * PORT(26.1): 1.21 Font.adjustColor treated a text colour with an empty alpha byte as opaque, so plain RGB values
+     * (ChatFormatting#getColor, 0x592424, ...) were readable. 26.1 draws them fully transparent. Applied where BlockUI
+     * draws text so callers keep the old meaning; colours with an explicit alpha are left alone.
+     *
+     * @param color ARGB or plain RGB colour.
+     * @return the colour to hand to the 26.1 text renderer.
+     */
+    public static int legacyText(final int color)
+    {
+        return (color & 0xFC000000) == 0 ? color | 0xFF000000 : color;
+    }
+
     public static TextColor toVanilla(final int color)
     {
         return TextColor.fromRgb(color);

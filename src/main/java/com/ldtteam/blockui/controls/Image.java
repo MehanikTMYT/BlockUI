@@ -160,16 +160,43 @@ public class Image extends Pane
         // this is called by most of image classes -> parse our textures
         OutOfJarTexture.assertLoadedDefaultManagers(resLoc);
 
-        final TextureAtlas guiAtlas =
-            Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(BlockUI.NAMESPACE_TO_ATLAS_MAP.get(resLoc.getNamespace()));
-        final TextureAtlasSprite atlasSprite = guiAtlas.getSprite(resLoc);
+        /*
+         * Only resources belonging to a namespace with an explicitly
+         * registered GUI atlas may be resolved as atlas sprites.
+         *
+         * External BlockUI users commonly reference ordinary textures
+         * from their own namespace. In that case no atlas is registered
+         * and the texture must fall through to the direct blit path.
+         */
+        final Identifier atlasId =
+            BlockUI.NAMESPACE_TO_ATLAS_MAP.get(resLoc.getNamespace());
 
-        // unless we sprited missing texture pass to sprite blit (intentional object equality)
-        if (atlasSprite != guiAtlas.missingSprite())
+        if (atlasId != null)
         {
-            return resolveSprite(atlasSprite, atlasSprite.contents().getAdditionalMetadata(GuiMetadataSection.TYPE).orElse(GuiMetadataSection.DEFAULT).scaling());
+            final TextureAtlas guiAtlas =
+                Minecraft.getInstance()
+                    .getAtlasManager()
+                    .getAtlasOrThrow(atlasId);
+
+            final TextureAtlasSprite atlasSprite =
+                guiAtlas.getSprite(resLoc);
+
+            // Unless the atlas returned its missing sprite,
+            // render using the resolved sprite metadata.
+            if (atlasSprite != guiAtlas.missingSprite())
+            {
+                return resolveSprite(
+                    atlasSprite,
+                    atlasSprite.contents()
+                        .getAdditionalMetadata(GuiMetadataSection.TYPE)
+                        .orElse(GuiMetadataSection.DEFAULT)
+                        .scaling()
+                );
+            }
         }
 
+        // No registered atlas, or no matching sprite:
+        // use the resource as an ordinary texture.
         // if full blit do normal blit
         if (u == 0 && v == 0 && uWidth == 0 && vHeight == 0)
         {
